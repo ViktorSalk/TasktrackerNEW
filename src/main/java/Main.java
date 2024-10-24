@@ -1,8 +1,13 @@
-package manager.history.task;
+import manager.history.task.Epic;
+import manager.history.task.Subtask;
+import manager.history.task.Task;
+import manager.history.task.TaskStatus;
+import manager.history.task.manager.Managers;
+import manager.history.task.manager.TaskManager;
 
 public class Main {
     public static void main(String[] args) {
-        TaskManager taskManager = new TaskManager();
+        TaskManager taskManager = Managers.getDefault();
 
         // Создание задач
         Task task1 = new Task("Задача 1", "Описание задачи 1");
@@ -63,22 +68,6 @@ public class Main {
             System.out.println(subtask);
         }
 
-        // Удаление задачи
-        System.out.println();
-        taskManager.deleteTask(task1.getId());
-        System.out.println("Список задач после удаления:");
-        for (Task task : taskManager.getAllTasks()) {
-            System.out.println(task);
-        }
-
-        // Удаление эпика
-        taskManager.deleteEpic(epic1.getId());
-        System.out.println();
-        System.out.println("Список эпиков после удаления:");
-        for (Epic epic : taskManager.getAllEpics()) {
-            System.out.println(epic);
-        }
-
         // Проверка обновления статуса эпика
         System.out.println();
         System.out.println("Проверка обновления статуса эпика:");
@@ -89,5 +78,18 @@ public class Main {
         System.out.println(String.format("Статус эпика 2 после обновления: %s",
                 taskManager.getEpicById(epic2.getId()).getStatus()));
 
+        // Просмотр задач
+        System.out.println();
+        System.out.println("Просмотр задач:");
+        taskManager.getTaskById(task1.getId());
+        taskManager.getSubtaskById(subtask1.getId());
+        taskManager.getEpicById(epic1.getId());
+
+        // Вывод истории просмотров
+        System.out.println();
+        System.out.println("История просмотров:");
+        for (Task task : taskManager.getHistory()) {
+            System.out.println(task);
+        }
     }
 }

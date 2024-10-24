@@ -1,14 +1,22 @@
-package manager.history.task;
+package manager.history.task.manager;
+
+import manager.history.HistoryManager;
+import manager.history.task.Epic;
+import manager.history.task.Subtask;
+import manager.history.task.Task;
+import manager.history.task.TaskStatus;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
-class TaskManager {
+public class InMemoryTaskManager implements TaskManager {
     private int nextTaskId = 1;
-    private HashMap<Integer, Task> tasks = new HashMap<>();
-    private HashMap<Integer, Epic> epics = new HashMap<>();
-    private HashMap<Integer, Subtask> subtasks = new HashMap<>();
+    private final Map<Integer, Task> tasks = new HashMap<>(); // Обозначаю интерфейс Map
+    private final Map<Integer, Epic> epics = new HashMap<>();
+    private final Map<Integer, Subtask> subtasks = new HashMap<>();
+    private final HistoryManager historyManager = Managers.getDefaultHistory();
 
     public Task addTask(Task task) {
         task.setId(nextTaskId++);
@@ -17,7 +25,11 @@ class TaskManager {
     }
 
     public Task getTaskById(int id) {
-        return tasks.get(id);
+        Task task = tasks.get(id);
+        if (task != null) {
+            historyManager.add(task);
+        }
+        return task;
     }
 
     public void updateTask(Task task) {
@@ -41,7 +53,11 @@ class TaskManager {
     }
 
     public Epic getEpicById(int id) {
-        return epics.get(id);
+        Epic epic = epics.get(id);
+        if (epic != null) {
+            historyManager.add(epic);
+        }
+        return epic;
     }
 
     public void updateEpic(Epic epic) {
@@ -50,10 +66,12 @@ class TaskManager {
 
     public void deleteEpic(int id) {
         // Удаление подзадач, связанных с эпиком
-        for (Subtask subtask : epics.get(id).getSubtasks()) {
-            deleteSubtask(subtask.getId());
+        Epic removedEpic = epics.remove(id);
+        if (removedEpic != null) {
+            for (Subtask subtask : removedEpic.getSubtasks()) {
+                deleteSubtask(subtask.getId());
+            }
         }
-        epics.remove(id);
     }
 
     public List<Epic> getAllEpics() {
@@ -68,7 +86,8 @@ class TaskManager {
 
         // Проверка на наличие эпика перед добавлением
         if (!epics.containsKey(subtask.getEpicId())) {
-            throw new IllegalArgumentException("Эпик с ID " + subtask.getEpicId() + " отсутствует.");
+            throw new IllegalArgumentException("Эпик с ID " + subtask.getEpicId()
+                    + " отсутствует.");
         }
 
         epics.get(subtask.getEpicId()).addSubtask(subtask);
@@ -77,19 +96,30 @@ class TaskManager {
     }
 
     public Subtask getSubtaskById(int id) {
-        return subtasks.get(id);
+        Subtask subtask = subtasks.get(id);
+        if (subtask != null) {
+            historyManager.add(subtask);
+        }
+        return subtask;
     }
 
     public void updateSubtask(Subtask subtask) {
+        // Удаление старой подзадачи из эпика
+        Subtask oldSubtask = subtasks.remove(subtask.getId());
+        if (oldSubtask != null) {
+            epics.get(oldSubtask.getEpicId()).removeSubtask(oldSubtask.getId());
+        }
+        // Добавление новой подзадачи в эпик
         subtasks.put(subtask.getId(), subtask);
+        epics.get(subtask.getEpicId()).addSubtask(subtask);
         updateEpicStatus(subtask.getEpicId());
     }
 
     public void deleteSubtask(int id) {
-        Subtask subtask = subtasks.get(id);
-        epics.get(subtask.getEpicId()).removeSubtask(id);
-        subtasks.remove(id);
-        updateEpicStatus(subtask.getEpicId());
+        Subtask subtask = subtasks.remove(id);
+        if (subtask != null) {
+            epics.get(subtask.getEpicId()).removeSubtask(id);
+        }
     }
 
     public List<Subtask> getAllSubtasks() {
@@ -119,18 +149,16 @@ class TaskManager {
     }
 
     public void clearEpics() {
-        for (Epic epic : epics.values()) {
-            for (Subtask subtask : epic.getSubtasks()) {
-                deleteSubtask(subtask.getId());
-            }
-        }
         epics.clear();
+        subtasks.clear();
     }
 
     public void clearSubtasks() {
-        for (Subtask subtask : subtasks.values()) {
-            epics.get(subtask.getEpicId()).removeSubtask(subtask.getId());
-        }
         subtasks.clear();
+    }
+
+    @Override
+    public List<Task> getHistory() {
+        return historyManager.getHistory();
     }
 }

@@ -3,8 +3,8 @@ package manager.history.task;
 import java.util.ArrayList;
 import java.util.List;
 
-class Epic extends Task {
-    private List<Subtask> subtasks = new ArrayList<>();
+public class Epic extends Task {
+    private final List<Subtask> subtasks = new ArrayList<>();
 
     public Epic(String name, String description) {
         super(name, description);
@@ -19,7 +19,7 @@ class Epic extends Task {
     }
 
     public List<Subtask> getSubtasks() {
-        return subtasks;
+        return new ArrayList<>(subtasks);
     }
 
     public void updateSubtask(Subtask subtask) {
